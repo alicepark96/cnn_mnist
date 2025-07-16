@@ -1,5 +1,7 @@
 streamlit
 tensorflow
-pillow
+keras
+opencv-python
 numpy
+pillow
 streamlit-drawable-canvas
