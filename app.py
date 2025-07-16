@@ -1,24 +1,44 @@
 # app.py
 import streamlit as st
 import numpy as np
-from PIL import Image, ImageOps
 from tensorflow.keras.models import load_model
+from streamlit_drawable_canvas import st_canvas
+from PIL import Image
 
-st.title("✍️ 손글씨 숫자 인식기 (MNIST + CNN)")
+st.set_page_config(page_title="손글씨 숫자 인식기", layout="centered")
+st.title("✍️ 직접 써보는 숫자 인식기 (MNIST + CNN)")
 
+# 모델 불러오기
 model = load_model("cnn_mnist.h5")
 
-uploaded_file = st.file_uploader("28x28 크기의 손글씨 이미지를 업로드하세요 (흑백)", type=["jpg", "png"])
+st.markdown("### 아래 칸에 숫자를 그려보세요!")
+st.markdown("배경: 검정색, 선: 흰색 (마우스로 입력)")
 
-if uploaded_file is not None:
-    image = Image.open(uploaded_file).convert('L')  # 흑백
-    image = ImageOps.invert(image)  # 흰 배경, 검은 글씨
-    image = image.resize((28, 28))
-    img_array = np.array(image).astype('float32') / 255.0
-    img_array = img_array.reshape(1, 28, 28, 1)
+# 캔버스 설정
+canvas_result = st_canvas(
+    fill_color="#000000",  # 캔버스 배경은 검정
+    stroke_width=15,
+    stroke_color="#FFFFFF",  # 흰색 펜
+    background_color="#000000",
+    height=280,
+    width=280,
+    drawing_mode="freedraw",
+    key="canvas",
+)
 
-    prediction = model.predict(img_array)
+# 예측하기
+if canvas_result.image_data is not None:
+    # 1. 이미지 가져오기
+    img = canvas_result.image_data[:, :, 0]  # 흑백으로 추출
+    img = Image.fromarray(img)
+    img = img.resize((28, 28))  # MNIST 크기로 리사이즈
+    img = np.array(img).astype("float32") / 255.0
+    img = 1 - img  # 배경은 흰색, 글씨는 검정으로 반전
+    img = img.reshape(1, 28, 28, 1)
+
+    # 2. 예측
+    prediction = model.predict(img)
     predicted_digit = np.argmax(prediction)
 
-    st.image(image.resize((140, 140)), caption="입력된 이미지", use_column_width=False)
-    st.subheader(f"🧠 모델 예측 결과: {predicted_digit}")
+    st.markdown("### 🧠 모델이 예측한 숫자:")
+    st.header(f"👉 {predicted_digit}")
